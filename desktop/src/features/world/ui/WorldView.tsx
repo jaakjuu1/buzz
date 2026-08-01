@@ -1,3 +1,5 @@
+import * as React from "react";
+
 import { TopChromeInsetHeader } from "@/shared/layout/TopChromeInsetHeader";
 import { useNow } from "@/shared/lib/useNow";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -15,6 +17,8 @@ import { ACTIVITY_GREEN, UNREAD_AMBER } from "./iso/isoColors";
 import { IsoRoomScene } from "./iso/IsoRoomScene";
 import { RoomOverlay } from "./iso/RoomOverlay";
 import { WorldCanvas } from "./WorldCanvas";
+
+const WorldPixiStage = React.lazy(() => import("./pixi/WorldPixiStage"));
 
 type WorldViewProps = {
   onOpenChannel: (channelId: string) => void;
@@ -38,6 +42,9 @@ export function WorldView({ onOpenChannel, onOpenProfile }: WorldViewProps) {
   const { worldState, isLoading } = useWorldState();
   // Coarse tick: elapsed labels only need ~half-minute resolution.
   const nowMs = useNow(30_000);
+  // Sprite-sheet characters render on a PixiJS canvas; if WebGL/WebGPU init
+  // fails we fall back to the DOM meeples.
+  const [pixiUnavailable, setPixiUnavailable] = React.useState(false);
 
   const layout = buildWorldLayout(
     worldState.rooms.map((room) => ({
@@ -117,7 +124,27 @@ export function WorldView({ onOpenChannel, onOpenProfile }: WorldViewProps) {
           </div>
         ) : (
           <>
-            <WorldCanvas stageHeight={stageHeight} stageWidth={stageWidth}>
+            <WorldCanvas
+              canvasLayer={
+                pixiUnavailable
+                  ? undefined
+                  : (camera) => (
+                      <React.Suspense fallback={null}>
+                        <WorldPixiStage
+                          bounds={bounds}
+                          camera={camera}
+                          key={`${bounds.minX}:${bounds.minY}:${bounds.maxX}:${bounds.maxY}`}
+                          nowMs={nowMs}
+                          onOpenProfile={onOpenProfile}
+                          onUnavailable={() => setPixiUnavailable(true)}
+                          placements={placed}
+                        />
+                      </React.Suspense>
+                    )
+              }
+              stageHeight={stageHeight}
+              stageWidth={stageWidth}
+            >
               <svg
                 aria-hidden
                 className="absolute left-0 top-0"
@@ -160,18 +187,20 @@ export function WorldView({ onOpenChannel, onOpenProfile }: WorldViewProps) {
                   room={roomsById.get(plot.id) ?? null}
                 />
               ))}
-              {placed.map(({ character, plot, u, v }) => (
-                <IsoCharacter
-                  bounds={bounds}
-                  character={character}
-                  key={character.pubkey}
-                  nowMs={nowMs}
-                  onOpenProfile={onOpenProfile}
-                  plot={plot}
-                  u={u}
-                  v={v}
-                />
-              ))}
+              {pixiUnavailable
+                ? placed.map(({ character, plot, u, v }) => (
+                    <IsoCharacter
+                      bounds={bounds}
+                      character={character}
+                      key={character.pubkey}
+                      nowMs={nowMs}
+                      onOpenProfile={onOpenProfile}
+                      plot={plot}
+                      u={u}
+                      v={v}
+                    />
+                  ))
+                : null}
             </WorldCanvas>
             <div className="pointer-events-none absolute right-3 top-3 z-30 flex flex-col gap-1 rounded-lg border border-border/60 bg-background/85 px-2.5 py-2 text-2xs text-muted-foreground shadow-xs backdrop-blur-sm">
               <span className="flex items-center gap-1.5">

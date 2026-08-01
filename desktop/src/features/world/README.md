@@ -18,9 +18,28 @@ buildWorldLayout() + isoMath   (pure campus/projection geometry)
         ▼
 WorldCanvas (pan/zoom camera)
   ├── SVG scene: IsoRoomScene (floors, walls, furniture, activity glow)
+  ├── Pixi canvas: WorldPixiStage + CharacterActor (sprite-sheet meeples)
   └── HTML layer: RoomOverlay (click targets, nameplates)
-                  IsoCharacter (living meeples, see below)
+                  IsoCharacter (DOM fallback when WebGL is unavailable)
 ```
+
+## Pixi character layer
+
+`WorldPixiStage` (lazy-loaded, so pixi.js stays out of the main bundle)
+renders characters on a WebGL canvas between the SVG rooms and the HTML
+overlays. Each character gets a **procedurally drawn sprite sheet**
+(`meepleSheet.ts`): walk cycles in front/back views (screen-left movement
+mirrors the sprite), an idle breathing loop, and a head that shows the
+avatar once it loads — otherwise a colored disc with the name initial.
+Facing is derived from the world-space movement delta
+(`model/spriteDirection.ts`, unit-tested).
+
+The camera transform is applied to the Pixi scene graph, not CSS, so
+sprites stay crisp at every zoom. Clicks that hit no character are
+re-dispatched to the DOM underneath, keeping floor doors and nameplates
+clickable; a drag threshold shared with the pan gesture prevents
+accidental profile opens. If WebGL/WebGPU init fails, the view falls back
+to the DOM meeples (`IsoCharacter`) with identical behavior.
 
 ## Character movement
 

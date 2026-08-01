@@ -7,12 +7,18 @@ const MIN_SCALE = 0.35;
 const MAX_SCALE = 2.5;
 const DRAG_THRESHOLD_PX = 4;
 
-type Camera = { x: number; y: number; scale: number };
+export type Camera = { x: number; y: number; scale: number };
 
 type WorldCanvasProps = {
   stageWidth: number;
   stageHeight: number;
   children: React.ReactNode;
+  /**
+   * Optional un-transformed layer above the stage (e.g. the Pixi character
+   * canvas, which applies the camera to its own scene graph so sprites stay
+   * crisp instead of being CSS-scaled).
+   */
+  canvasLayer?: (camera: Camera | null) => React.ReactNode;
 };
 
 function clampScale(scale: number): number {
@@ -28,6 +34,7 @@ export function WorldCanvas({
   stageWidth,
   stageHeight,
   children,
+  canvasLayer,
 }: WorldCanvasProps) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [camera, setCamera] = React.useState<Camera | null>(null);
@@ -201,6 +208,11 @@ export function WorldCanvas({
         />
         {children}
       </div>
+      {canvasLayer ? (
+        <div className="pointer-events-none absolute inset-0 z-10">
+          {canvasLayer(camera)}
+        </div>
+      ) : null}
       <div className="absolute bottom-3 right-3 z-30 flex flex-col gap-1">
         <Button
           aria-label="Zoom in"
