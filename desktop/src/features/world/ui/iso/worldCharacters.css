@@ -1,0 +1,72 @@
+/* Character rig animations for the world view. All motion is decorative and
+ * gated behind prefers-reduced-motion; positions themselves are driven by
+ * the movement controller in IsoCharacter.tsx. */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes world-leg-swing {
+    0%,
+    100% {
+      transform: rotate(24deg);
+    }
+    50% {
+      transform: rotate(-24deg);
+    }
+  }
+
+  @keyframes world-body-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-1.5px);
+    }
+  }
+
+  @keyframes world-idle-sway {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-0.75px) rotate(0.6deg);
+    }
+  }
+
+  @keyframes world-plumbob-bob {
+    0%,
+    100% {
+      transform: translateY(0) rotate(45deg) scaleY(1.4);
+      opacity: 1;
+    }
+    50% {
+      transform: translateY(-2.5px) rotate(45deg) scaleY(1.4);
+      opacity: 0.75;
+    }
+  }
+
+  .world-character .world-leg {
+    transform-origin: top center;
+  }
+
+  .world-character.world-walking .world-leg-l {
+    animation: world-leg-swing 0.4s ease-in-out infinite;
+  }
+
+  .world-character.world-walking .world-leg-r {
+    animation: world-leg-swing 0.4s ease-in-out infinite;
+    animation-delay: -0.2s;
+  }
+
+  .world-character.world-walking .world-sprite {
+    animation: world-body-bob 0.4s ease-in-out infinite;
+  }
+
+  .world-character:not(.world-walking) .world-sprite {
+    animation: world-idle-sway 3.2s ease-in-out infinite;
+  }
+
+  .world-character .world-plumbob {
+    animation: world-plumbob-bob 1.6s ease-in-out infinite;
+  }
+}

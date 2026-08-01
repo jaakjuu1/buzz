@@ -2,7 +2,7 @@ import { TopChromeInsetHeader } from "@/shared/layout/TopChromeInsetHeader";
 import { useNow } from "@/shared/lib/useNow";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useWorldState } from "../hooks/useWorldState";
-import { layoutScreenBounds, pointInPlot } from "../model/isoMath";
+import { type IsoPlot, layoutScreenBounds } from "../model/isoMath";
 import { characterOffset } from "../model/roomLayout";
 import {
   buildWorldLayout,
@@ -21,7 +21,12 @@ type WorldViewProps = {
   onOpenProfile: (pubkey: string) => void;
 };
 
-type PlacedCharacter = { character: WorldCharacter; x: number; y: number };
+type PlacedCharacter = {
+  character: WorldCharacter;
+  plot: IsoPlot;
+  u: number;
+  v: number;
+};
 
 /**
  * The isometric world: channels as cutaway rooms on a campus, characters as
@@ -56,24 +61,32 @@ export function WorldView({ onOpenChannel, onOpenProfile }: WorldViewProps) {
         ? worldState.lobby
         : (worldState.charactersByRoom.get(plot.id) ?? []);
     const maxColumns = plot.kind === "lounge" ? 8 : 4;
+    let deskSlot = 0;
     occupants.forEach((character, index) => {
+      if (character.state === "working" && plot.kind === "room") {
+        // Working agents take desk spots along the back wall.
+        const slot = deskSlot;
+        deskSlot += 1;
+        placed.push({
+          character,
+          plot,
+          u: Math.min(0.78, 0.3 + slot * 0.16),
+          v: 0.24 + (slot % 2) * 0.1,
+        });
+        return;
+      }
       const offset = characterOffset(
         character.pubkey,
         index,
         occupants.length,
         maxColumns,
       );
-      const point = pointInPlot(plot, offset.x / 100, offset.y / 100);
-      placed.push({
-        character,
-        x: point.sx - bounds.minX,
-        y: point.sy - bounds.minY,
-      });
+      placed.push({ character, plot, u: offset.x / 100, v: offset.y / 100 });
     });
   }
-  // Stable element order (and stable DOM nodes) per pubkey: moving a
-  // character to another room updates left/top on the same element, so the
-  // CSS transition walks it across the campus.
+  // Stable element order (and stable DOM nodes) per pubkey: when the
+  // projection moves a character to another room, the movement controller
+  // walks the same element there along the streets.
   placed.sort((a, b) => a.character.pubkey.localeCompare(b.character.pubkey));
 
   return (
@@ -147,14 +160,16 @@ export function WorldView({ onOpenChannel, onOpenProfile }: WorldViewProps) {
                   room={roomsById.get(plot.id) ?? null}
                 />
               ))}
-              {placed.map(({ character, x, y }) => (
+              {placed.map(({ character, plot, u, v }) => (
                 <IsoCharacter
+                  bounds={bounds}
                   character={character}
                   key={character.pubkey}
                   nowMs={nowMs}
                   onOpenProfile={onOpenProfile}
-                  x={x}
-                  y={y}
+                  plot={plot}
+                  u={u}
+                  v={v}
                 />
               ))}
             </WorldCanvas>
