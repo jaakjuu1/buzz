@@ -6,6 +6,7 @@ import type { FeedItem } from "@/shared/api/types";
 import type { SettingsSection } from "@/features/settings/ui/SettingsPanels";
 
 const EMPTY_SET = new Set<string>();
+const EMPTY_COUNTS = new Map<string, number>();
 
 type AppShellContextValue = {
   markAllChannelsRead: () => void;
@@ -47,6 +48,11 @@ type AppShellContextValue = {
   threadActivityItems: ThreadActivityItem[];
   threadActivityFeedItems: FeedItem[];
   feedItemState: FeedItemState;
+  // Unread projections from the single AppShell-mounted useUnreadChannels
+  // instance, exposed for surfaces (e.g. the world view) that render outside
+  // the sidebar prop chain. Read-only — mutate via markChannel* above.
+  unreadChannelIds: ReadonlySet<string>;
+  unreadChannelCounts: ReadonlyMap<string, number>;
   // Open the Settings panel at the given section. Available on all surfaces
   // that render under AppShell (channel, home, projects, pulse, agents).
   // Used by config-nudge cards to deep-link to Settings → Agents.
@@ -74,6 +80,8 @@ const AppShellContext = React.createContext<AppShellContextValue>({
   isThreadMuted: () => false,
   threadActivityItems: [],
   threadActivityFeedItems: [],
+  unreadChannelIds: EMPTY_SET,
+  unreadChannelCounts: EMPTY_COUNTS,
   feedItemState: {
     doneSet: EMPTY_SET,
     markDone: () => {},

@@ -26,7 +26,7 @@ import {
   useOpenDmMutation,
 } from "@/features/channels/hooks";
 import { useUnreadChannels } from "@/features/channels/useUnreadChannels";
-import { msgContextKey } from "@/features/channels/readState/readStateFormat";
+import { useShellReadStateHelpers } from "@/app/useShellReadStateHelpers";
 import { useMembershipNotifications } from "@/features/channels/useMembershipNotifications";
 import { useFeedItemState } from "@/features/home/useFeedItemState";
 import { useThreadFollows } from "@/features/messages/lib/useThreadFollows";
@@ -133,6 +133,7 @@ export function AppShell() {
     goPulse,
     goSettings,
     goWorkflows,
+    goWorld,
     closeSettings,
     openSearchHit,
   } = useAppNavigation();
@@ -356,49 +357,12 @@ export function AppShell() {
     followedRootIds,
   });
 
-  const getThreadReadAt = React.useCallback(
-    (rootId: string, channelId?: string | null) => {
-      const threadReadAt = getOwnReadAt(`thread:${rootId}`);
-      if (!channelId) {
-        return threadReadAt;
-      }
-
-      const channelReadAt = getChannelReadAt(channelId);
-      if (threadReadAt === null) {
-        return channelReadAt;
-      }
-      if (channelReadAt === null) {
-        return threadReadAt;
-      }
-      return Math.max(threadReadAt, channelReadAt);
-    },
-    [getChannelReadAt, getOwnReadAt],
-  );
-
-  const markThreadRead = React.useCallback(
-    (rootId: string, timestamp: number) => {
-      markChannelRead(
-        `thread:${rootId}`,
-        new Date(timestamp * 1_000).toISOString(),
-      );
-    },
-    [markChannelRead],
-  );
-
-  // Per-message read frontier (LP4 v3): effective(msg:<id>) folds through the
-  // channel, so a channel-read clears messages older than the top-level frontier.
-  const getMessageReadAt = React.useCallback(
-    (messageId: string) => getChannelReadAt(msgContextKey(messageId)),
-    [getChannelReadAt],
-  );
-  const markMessageRead = React.useCallback(
-    (messageId: string, timestamp: number) =>
-      markChannelRead(
-        msgContextKey(messageId),
-        new Date(timestamp * 1_000).toISOString(),
-      ),
-    [markChannelRead],
-  );
+  const { getThreadReadAt, markThreadRead, getMessageReadAt, markMessageRead } =
+    useShellReadStateHelpers({
+      getChannelReadAt,
+      getOwnReadAt,
+      markChannelRead,
+    });
   const threadActivityFeedItems = useThreadActivityFeedItems(
     threadActivityItems,
     mutedRootIds,
@@ -731,6 +695,8 @@ export function AppShell() {
             isThreadMuted: (rootId) => mutedRootIds.has(rootId),
             threadActivityItems,
             threadActivityFeedItems,
+            unreadChannelIds,
+            unreadChannelCounts,
             feedItemState,
             onOpenSettings: handleOpenSettings,
           }}
@@ -886,6 +852,7 @@ export function AppShell() {
                             onSelectPulse={() => void goPulse()}
                             onSelectSettings={handleOpenSettings}
                             onSelectWorkflows={() => void goWorkflows()}
+                            onSelectWorld={() => void goWorld()}
                             onSetPresenceStatus={(status) =>
                               presenceSession.setStatus(status)
                             }

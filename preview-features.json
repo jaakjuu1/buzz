@@ -26,6 +26,12 @@
       "platforms": ["desktop"]
     },
     {
+      "id": "world",
+      "name": "World view",
+      "description": "Spatial map of the community — channels as rooms, agents and people as characters",
+      "platforms": ["desktop"]
+    },
+    {
       "id": "agentManagedProfiles",
       "name": "Agent-managed profiles",
       "description": "Let agents manage their own relay name and avatar instead of restoring the desktop copy",
