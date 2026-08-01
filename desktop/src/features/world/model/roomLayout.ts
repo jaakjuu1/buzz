@@ -16,17 +16,19 @@ export function hashString(value: string): number {
 export type CharacterOffset = { x: number; y: number };
 
 /**
- * Where a character stands inside a room tile, as percentages of the tile's
- * floor area. `index`/`count` spread occupants across columns; the pubkey
- * hash jitters each one so rows don't look machine-stamped.
+ * Where a character stands inside a plot, as fractional floor coordinates
+ * (percent). `index`/`count` spread occupants across up to `maxColumns`
+ * columns; the pubkey hash jitters each one so rows don't look
+ * machine-stamped.
  */
 export function characterOffset(
   pubkey: string,
   index: number,
   count: number,
+  maxColumns = 4,
 ): CharacterOffset {
   const hash = hashString(pubkey);
-  const columns = Math.max(1, Math.min(count, 4));
+  const columns = Math.max(1, Math.min(count, maxColumns));
   const column = index % columns;
   const row = Math.floor(index / columns);
   const jitterX = ((hash & 0xff) / 255 - 0.5) * 10;
@@ -37,9 +39,4 @@ export function characterOffset(
     x: Math.min(88, Math.max(10, x)),
     y: Math.min(84, Math.max(30, y)),
   };
-}
-
-/** Rooms with a crowd get a double-wide tile so occupants stay readable. */
-export function roomSpan(occupantCount: number): 1 | 2 {
-  return occupantCount >= 4 ? 2 : 1;
 }

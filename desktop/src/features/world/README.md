@@ -13,7 +13,13 @@ profiles, unread via AppShellContext)
 useWorldState()  ──►  buildWorldState()   (pure, unit-tested)
         │
         ▼
-WorldView / WorldRoomTile / WorldCharacterChip   (dumb renderers)
+buildWorldLayout() + isoMath   (pure campus/projection geometry)
+        │
+        ▼
+WorldCanvas (pan/zoom camera)
+  ├── SVG scene: IsoRoomScene (floors, walls, furniture, activity glow)
+  └── HTML layer: RoomOverlay (click targets, nameplates)
+                  IsoCharacter (meeples; left/top transitions = walking)
 ```
 
 The renderer only draws `WorldState` — it never subscribes to the relay or
